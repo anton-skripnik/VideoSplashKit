@@ -29,6 +29,8 @@ open class VideoSplashViewController: UIViewController {
     open var sound: Bool = true { didSet { moviePlayerSoundLevel = sound ? 1 : 0 } }
     open var alpha: CGFloat = 1 { didSet { moviePlayer.view.alpha = alpha } }
     
+    open var shouldCropVideo: Bool = true
+    
     open var alwaysRepeat: Bool = true {
         
         didSet {
@@ -80,13 +82,19 @@ open class VideoSplashViewController: UIViewController {
     }
     
     private func setMoviePlayer(url: URL){
-        let videoCutter = VideoCutter()
-        videoCutter.cropVideoWithUrl(videoUrl: url, startTime: startTime, duration: duration) { [weak self] (videoPath, error) -> Void in
+        let setupPlayback = { [weak self](videoPath: URL?, _: Error?) -> Void in
             guard let path = videoPath, let strongSelf = self else { return }
             strongSelf.moviePlayer.player = AVPlayer(url: path)
             strongSelf.moviePlayer.player?.addObserver(strongSelf, forKeyPath: "status", options: .new, context: nil)
             strongSelf.moviePlayer.player?.play()
             strongSelf.moviePlayer.player?.volume = strongSelf.moviePlayerSoundLevel
+        }
+        
+        if !self.shouldCropVideo {
+            setupPlayback(url, nil)
+        } else {
+            let videoCutter = VideoCutter()
+            videoCutter.cropVideoWithUrl(videoUrl: url, startTime: startTime, duration: duration, completion: setupPlayback)
         }
     }
     
